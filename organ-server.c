@@ -3,23 +3,42 @@
 #include<stdlib.h>
 #include<string.h>
 
+// Error messages
 static const char *BAD_CHARACTER_ERROR_MSG = "Unsupported character";
 
-static void finish(int signal);
-static void print_to_top(const char *msg);
-static void print_current_notes();
-static void error(const char *msg);
-static void start_note(char c);
-static void stop_note(char c);
+// Interface elements
+static const char *STR_HEADER = "The Sunlab Organ";
+static const char *STR_FLAGS_HEADER = "Currently enabled flags:";
 
-bool notes[26];
+static void finish(int signal);
+static void print_current_flags();
+static void move_to_flags();
+static void error(const char *msg);
+static void start_flag(char c);
+static void stop_flag(char c);
+
+// Currently enabled flags
+bool flags[26];
 
 int main(int argc, char **args)
 {
+    memset(flags, 0, 26);
+
     initscr();
     keypad(stdscr, TRUE);
     nonl();
     cbreak();
+    
+    // Make the cursor invisible
+    curs_set(0);
+
+    // Print static information
+    move(0, 0);
+    addstr(STR_HEADER);
+    move(1,0);
+    addstr(STR_FLAGS_HEADER);
+    move_to_flags();
+    refresh();
 
     for (;;)
     {
@@ -30,26 +49,26 @@ int main(int argc, char **args)
             continue;
         }
 
-        if (notes[c])
-            stop_note(c);
+        if (flags[c])
+            stop_flag(c);
         else
-            start_note(c);
+            start_flag(c);
     }
 }
 
-static void start_note(char c)
+static void start_flag(char c)
 {
-    notes[c] = 1;
-    print_current_notes();
+    flags[c] = 1;
+    print_current_flags();
 }
 
-static void stop_note(char c)
+static void stop_flag(char c)
 {
-    notes[c] = 0;
-    print_current_notes();
+    flags[c] = 0;
+    print_current_flags();
 }
 
-static void print_current_notes()
+static void print_current_flags()
 {
     char buffer[27];
     memset(buffer, 0, 27);
@@ -58,25 +77,29 @@ static void print_current_notes()
 
     for (int i = 0; i < 26; i++)
     {
-        if (notes[i]) {
+        if (flags[i]) {
             buffer[buffer_index++] = i + 'a';
         }
     }
 
-    print_to_top(buffer);
+    move_to_flags();
+    clrtoeol();
+    addstr(buffer);
+    refresh();
+}
+
+static void move_to_flags()
+{
+    move(2, 0);
 }
 
 static void error(const char *msg)
 {
-    print_to_top(msg);
-}
-
-static void print_to_top(const char *msg)
-{
-    move(0, 0);
+    move(4, 0);
     clrtoeol();
     addstr(msg);
-    refresh();
+    print_current_flags();
+    // TODO: Add timer for a timeout on the message.
 }
 
 static void finish(int signal)
