@@ -6,7 +6,7 @@
 
 // Constants
 static const int MAX_HOSTNAME_LEN = 64;
-static const char *MACHINES_SCRIPT = "/admin/consulta/bin/lab-machines";
+static const char *MACHINES_SCRIPT = "/admin/consult/bin/lab-machines";
 
 // Error messages
 static const char *BAD_CHARACTER_ERROR_MSG = "Unsupported character";
