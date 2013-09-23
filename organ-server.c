@@ -28,13 +28,17 @@ static void move_to_flags();
 static void error(const char *msg);
 static void start_flag(char c);
 static void stop_flag(char c);
-static remote_child *initialize_children();
+static void initialize_children();
 
 // Currently enabled flags
 bool flags[26];
 
+// Remote children
+remote_child *child_head = 0;
+
 int main(int argc, char **args)
 {
+    // Initialize all the flags to off
     memset(flags, 0, 26);
 
     initscr();
@@ -42,7 +46,9 @@ int main(int argc, char **args)
     nonl();
     cbreak();
 
-    remote_child *children = initialize_children(); 
+    // Get a list of sunlab machines, and initialize the data structures for
+    // keeping track of them.
+    initialize_children(); 
     
     // Make the cursor invisible
     curs_set(0);
@@ -117,7 +123,7 @@ static void error(const char *msg)
     // TODO: Add timer for a timeout on the message.
 }
 
-static remote_child *initialize_children()
+static void initialize_children()
 {
     remote_child *head = 0;
     remote_child *tail = 0;
@@ -129,7 +135,7 @@ static remote_child *initialize_children()
     }
 
     if (!fork()) {
-        // Child process
+        // I'm the child process
         close(pipefd[0]);
         // Setup the pipe as stdout
         close(STDOUT_FILENO);
@@ -141,9 +147,8 @@ static remote_child *initialize_children()
         if (execve(MACHINES_SCRIPT, argv, env) == -1) {
             exit(EXIT_FAILURE);
         }
-
     } else {
-        // Lol, I'm the parent.
+        // I'm the parent process.
         // Don't need the write side of the pipe
         close(pipefd[1]);
         
@@ -152,6 +157,11 @@ static remote_child *initialize_children()
         int read_ret;
         while (read(pipefd[0], &buf, MAX_HOSTNAME_LEN) > 0)
         {
+            if (buf[0] == 'm') {
+                // Skip ms lab machines
+                continue;
+            }
+
             remote_child *new_child = malloc(sizeof(remote_child));
             memset(new_child, 0, sizeof(remote_child));
             strcpy(new_child->hostname, buf);
@@ -168,12 +178,20 @@ static remote_child *initialize_children()
         close(pipefd[0]);
     }
 
-    return head;
+    child_head = head;
 }
 
 static void finish(int signal)
 {
     endwin();
+
+    // Destroy all the remote children
+    while(child_head)
+    {
+        remote_child *next = child_head->next;
+        free(child_head);
+        child_head = next;
+    }
 
     exit(0);
 }
