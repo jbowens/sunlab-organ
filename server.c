@@ -16,7 +16,7 @@
 static const char *BAD_CHARACTER_ERROR_MSG = "Unsupported character";
 
 // Interface elements
-static const char *STR_HEADER = "The Sunlab Organ v2 (with more bells... and more whistles)";
+static const char *STR_HEADER = "The Sunlab Organ v2 (with more bells and whistles... literally)";
 static const char *STR_FLAGS_HEADER = "Currently enabled flags:";
 
 // Data type for storing information about remote children in a list.
