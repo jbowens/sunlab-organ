@@ -277,7 +277,7 @@ static void broadcast_state()
 {
     remote_child *client = child_head;
 
-    // Create a bit mask of all the flags that are enabled. Since a 32bit int is less
+    // Create a bit mask of all the flags that are enabled. Since a 32bit int is more
     // than 26, we shouldn't run into any problems storing it like this.
     int bitmap = 0;
     for (int i = 0; i < 26; i++)
