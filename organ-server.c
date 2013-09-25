@@ -37,6 +37,7 @@ static void start_flag(char c);
 static void stop_flag(char c);
 static void initialize_children();
 static void launch_clients();
+static void broadcast_state();
 
 // Currently enabled flags
 bool flags[26];
@@ -266,6 +267,31 @@ static void launch_clients()
         curr_head->pid = pid;
 
         curr_head = curr_head->next;
+    }
+}
+
+/* Broadcast the current state of the flags to all the clients
+ * so that they know what the fuck is up, when it is up.
+ */
+static void broadcast_state()
+{
+    remote_child *client = child_head;
+
+    // Create a bit mask of all the flags that are enabled. Since a 32bit int is less
+    // than 26, we shouldn't run into any problems storing it like this.
+    int bitmap = 0;
+    for (int i = 0; i < 26; i++)
+    {
+        if (flags[i])
+            bitmap |= (1 >> i);
+    }
+
+    while (client)
+    {
+        // Write exactly 4 bytes, the bitmap, to the client.
+        write(client->write_fd, (char *) &bitmap, 4);
+        
+        client = client->next;
     }
 }
 
