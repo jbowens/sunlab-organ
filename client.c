@@ -6,7 +6,6 @@ int main(int argc, char **argv)
 {
 
     int flags[26];
-
     int buf;
 
     while (read(STDIN_FILENO, (char *) &buf, 4) > 0)
