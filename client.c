@@ -4,7 +4,7 @@
 #include<string.h>
 #include<unistd.h>
 
-#define BEEP_MAX_DURATION 20
+#define BEEP_MAX_DURATION "20"
 #define BEEP_EXECUTABLE "/usr/bin/beep"
 
 typedef struct a_beep {
@@ -46,8 +46,12 @@ a_beep *begin_beep(int freq)
     }
 
     if (!pid) {
+        // Create a string from the frequency
+        char freq_str[32];
+        sprintf(freq_str, "%d", freq);
+
         // Child process, run beep!
-        char * const argv[] = { BEEP_EXECUTABLE, NULL };
+        char * const argv[] = { BEEP_EXECUTABLE, "-l", BEEP_MAX_DURATION, "-f", freq_str };
         char * const envp[] = { NULL };
         if (execve(BEEP_EXECUTABLE, argv, envp) == -1) {
             perror("execve");
