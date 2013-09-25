@@ -63,6 +63,7 @@ int main(int argc, char **args)
     initscr();
     keypad(stdscr, TRUE);
     nonl();
+    noecho();
     cbreak();
     
     // Make the cursor invisible
