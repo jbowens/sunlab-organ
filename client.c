@@ -34,8 +34,6 @@ int main(int argc, char **argv)
 
     int flags[FLAG_COUNT];
     int buf = 0;
-    int oldbuf = 0;
-
 
     while (read(STDIN_FILENO, (char *) &buf, 4) > 0)
     {
@@ -53,7 +51,6 @@ int main(int argc, char **argv)
         }
 
         if (a_flag_down) {
-            printf("sup");
             // SOME flag is down.
             int freq = get_freq(flags);
             current_beep = begin_beep(freq); 
