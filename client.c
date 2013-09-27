@@ -6,7 +6,8 @@
 #include<string.h>
 #include<unistd.h>
 
-#define BEEP_MAX_DURATION "20"
+#define FLAG_COUNT 26
+#define BEEP_MAX_DURATION "30000"
 #define BEEP_EXECUTABLE "/usr/bin/beep"
 
 typedef struct a_beep {
@@ -15,18 +16,53 @@ typedef struct a_beep {
 
 a_beep *begin_beep(int freq);
 void end_beep(a_beep *beep);
+int get_freq(int *flags);
+
+a_beep *current_beep = 0;
+
+void sighandler(int sig)
+{
+    // Clean up after ourselves if we get cancelled.
+    if (current_beep)
+        end_beep(current_beep);
+}
 
 int main(int argc, char **argv)
 {
+    signal(SIGTERM, sighandler);
+    signal(SIGINT , sighandler);
 
-    int flags[26];
-    int buf;
+    int flags[FLAG_COUNT];
+    int buf = 0;
+    int oldbuf = 0;
+
 
     while (read(STDIN_FILENO, (char *) &buf, 4) > 0)
     {
         // Update the flags
-        for (int i = 0; i < 26; i++)
-            flags[i] = (1 >> i) & buf;
+        int a_flag_down = 0;
+        for (int i = 0; i < FLAG_COUNT; i++) {
+            flags[i] = (1 << i) & buf;
+            if (flags[i])
+                a_flag_down = 1;
+        }
+        
+        if (current_beep) {
+            end_beep(current_beep);
+            current_beep = 0;
+        }
+
+        if (a_flag_down) {
+            printf("sup");
+            // SOME flag is down.
+            int freq = get_freq(flags);
+            current_beep = begin_beep(freq); 
+        }
+    }
+
+    if (current_beep) {
+        end_beep(current_beep);
+        current_beep = 0;
     }
 
 }
@@ -69,5 +105,23 @@ void end_beep(a_beep *beep)
 {
     kill(beep->pid, SIGINT);
     free(beep);
+}
+
+int get_freq(int *flags)
+{
+    if (flags['a'-'a'])
+        return 440;
+    else if (flags['b'-'a'])
+        return 494;
+    else if(flags['c'-'a'])
+        return 262;
+    else if(flags['d'-'a'])
+        return 294;
+    else if(flags['e'-'a'])
+        return 330;
+    else if(flags['f'-'a'])
+        return 349;
+    else if(flags['g'-'a'])
+        return 392;
 }
 

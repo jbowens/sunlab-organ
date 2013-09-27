@@ -89,6 +89,8 @@ int main(int argc, char **args)
             stop_flag(c);
         else
             start_flag(c);
+
+        broadcast_state();
     }
 }
 
@@ -221,7 +223,7 @@ static void broadcast_state()
     for (int i = 0; i < 26; i++)
     {
         if (flags[i])
-            bitmap |= (1 >> i);
+            bitmap |= (1 << i);
     }
 
     while (client)
