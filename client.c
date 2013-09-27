@@ -120,5 +120,6 @@ int get_freq(int *flags)
         return 349;
     else if(flags['g'-'a'])
         return 392;
+    return 400;
 }
 
