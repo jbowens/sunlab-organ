@@ -48,6 +48,9 @@ int machine_count = 0;
 
 int main(int argc, char **args)
 {
+    signal(SIGINT , finish);
+    signal(SIGTERM, finish);
+
     // Initialize all the flags to off
     memset(flags, 0, 26);
    
