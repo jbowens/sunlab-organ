@@ -7,5 +7,5 @@ client:
 	gcc -std=c99 client.c -o organ-client
 
 clean:
-	rm client
-	rm server
+	rm organ-client
+	rm organ-server
