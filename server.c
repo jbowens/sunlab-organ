@@ -50,10 +50,9 @@ int main(int argc, char **args)
 {
     // Initialize all the flags to off
     memset(flags, 0, 26);
-    
-    // Get a list of sunlab machines, and initialize the data structures for
-    // keeping track of them.
-    initialize_children(); 
+   
+    // Initialize the clients based on the arguments to the program
+    initialize_children(argc-1, args+1); 
 
     // Launch clients on all the machines
     launch_clients();
@@ -139,87 +138,25 @@ static void error(const char *msg)
     // TODO: Add timer for a timeout on the message.
 }
 
-static void initialize_children()
+static void initialize_children(int hostname_count, char **hostnames)
 {
     remote_child *head = 0;
     remote_child *tail = 0;
 
-    int pipefd[2];
-    if (pipe(pipefd) == -1) {
-        perror("pipe");
-        exit(EXIT_FAILURE);
-    }
+    for (int i = 0; i < hostname_count; i++)
+    {
+        remote_child *new_child = malloc(sizeof(remote_child));
+        memset(new_child, 0, sizeof(remote_child));
+        strcpy(new_child->hostname, hostnames[i]);
+        machine_count++;
 
-    int pid = fork();
-    if (!pid) {
-        // I'm the child process
-        close(pipefd[0]);
-        // Setup the pipe as stdout
-        close(STDOUT_FILENO);
-        dup2(pipefd[1], STDOUT_FILENO);
-
-        char * const argv[] = { "/admin/consult/bin/lab-machines", NULL };
-        char * const envp[] = { NULL };
-
-        // Execute the script to get a list of machines
-        if (execve(MACHINES_SCRIPT, argv, envp) == -1) {
-            perror("execve");
-            exit(EXIT_FAILURE);
+        if (!head) {
+            head = new_child;
+            tail = new_child;
+        } else {
+            tail->next = new_child;
+            tail = new_child;
         }
-    } else {
-        // I'm the parent process.
-        // Don't need the write side of the pipe
-        close(pipefd[1]);
-        
-        // Read the hostnames all into one big buffer. Memory is cheap, right?
-        char buf[1024];
-        memset(buf, 0, 1024);
-        if(read(pipefd[0], buf, 1023) < 0) {
-            printf("Unable to read machine hostnames\n");
-            exit(EXIT_FAILURE);
-        }
-
-        // Loop through the hostnames and create remote clients for each
-        char *current_hostname = buf;
-        while (current_hostname[0] != '\0')
-        {
-            char hostname[MAX_HOSTNAME_LEN];
-            memset(hostname, 0, MAX_HOSTNAME_LEN);
-
-            char *next_newline = strchr(current_hostname, '\n');
-
-            if (next_newline == NULL) {
-                strcpy(hostname, current_hostname);
-            } else {
-                strncpy(hostname, current_hostname, next_newline - current_hostname);
-            }
-
-            // Prepare current_hostname for the next iteration
-            current_hostname = next_newline + 1;
-
-            if (hostname[0] == 'm') {
-                // Skip ms lab machines
-                continue;
-            }
-
-            remote_child *new_child = malloc(sizeof(remote_child));
-            memset(new_child, 0, sizeof(remote_child));
-            strcpy(new_child->hostname, hostname);
-
-            machine_count++;
-            if (!head) {
-                head = new_child;
-                tail = new_child;
-            } else {
-                tail->next = new_child;
-                tail = new_child;
-            }
-        }
-
-        close(pipefd[0]);
-
-        // Wait for our child process to die
-        waitpid(pid, 0, 0);
     }
 
     child_head = head;
