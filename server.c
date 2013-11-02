@@ -16,12 +16,19 @@
 static const char *BAD_CHARACTER_ERROR_MSG = "Unsupported character";
 
 // Interface elements
-static const char *STR_HEADER = "The Sunlab Organ v2 (with more bells and whistles... literally)";
+static const char *STR_HEADER[] = {
+" ____ ____ ____ ____ ____ ____ _________ ____ ____ ____ ____ ____ ",
+"||S |||U |||N |||L |||A |||B |||       |||O |||R |||G |||A |||N || ",
+"||__|||__|||__|||__|||__|||__|||_______|||__|||__|||__|||__|||__|| ",
+"|/__\\|/__\\|/__\\|/__\\|/__\\|/__\\|/_______\\|/__\\|/__\\|/__\\|/__\\|/__\\|",
+0 };
+
 static const char *STR_FLAGS_HEADER = "Currently enabled flags:";
 
 // Data type for storing information about remote children in a list.
 typedef struct remote_child {
     char hostname[MAX_HOSTNAME_LEN];
+    int dead;
     int pid;
     int read_fd;
     int write_fd;
@@ -50,6 +57,8 @@ int main(int argc, char **args)
 {
     signal(SIGINT , finish);
     signal(SIGTERM, finish);
+    signal(SIGCHLD, finish);
+    signal(SIGPIPE, finish);
 
     // Initialize all the flags to off
     memset(flags, 0, 26);
@@ -72,9 +81,13 @@ int main(int argc, char **args)
     curs_set(0);
 
     // Print static information
-    move(0, 0);
-    addstr(STR_HEADER);
-    move(1,0);
+    int i;
+    for (i = 0; STR_HEADER[i] != 0; i++)
+    {
+        move(i, 0);
+        addstr(STR_HEADER[i]);
+    }
+    move(5,0);
     addstr(STR_FLAGS_HEADER);
     move_to_flags();
     refresh();
@@ -131,7 +144,7 @@ static void print_current_flags()
 
 static void move_to_flags()
 {
-    move(2, 0);
+    move(6, 0);
 }
 
 static void error(const char *msg)
@@ -231,31 +244,44 @@ static void broadcast_state()
 
     while (client)
     {
-        // Write exactly 4 bytes, the bitmap, to the client.
-        write(client->write_fd, (char *) &bitmap, 4);
+        if (!client->dead)
+        {
+            // Write exactly 4 bytes, the bitmap, to the client.
+            if (write(client->write_fd, (char *) &bitmap, 4) == -1)
+            {
+                // Client is dead.
+                client->dead = 1;
+            }
+        }
         
         client = client->next;
     }
 }
 
-// TODO: Actually connect this sig handler
 static void finish(int signal)
 {
-    endwin();
-
-    // Destroy all the remote children
-    while (child_head)
+    if (signal == SIGCHLD || signal == SIGPIPE)
     {
-        remote_child *next = child_head->next;
-
-        // Kill the pipe connection, telling the client to exit
-        close(child_head->write_fd);
-        // Wait for the client to exit cleanly
-        waitpid(child_head->pid, 0, 0);
-
-        free(child_head);
-        child_head = next;
+        // A child died :(
     }
+    else
+    {
+        endwin();
 
-    exit(0);
+        // Destroy all the remote children
+        while (child_head)
+        {
+            remote_child *next = child_head->next;
+
+            // Kill the pipe connection, telling the client to exit
+            close(child_head->write_fd);
+            // Wait for the client to exit cleanly
+            waitpid(child_head->pid, 0, 0);
+
+            free(child_head);
+            child_head = next;
+        }
+
+        exit(0);
+    }
 }
